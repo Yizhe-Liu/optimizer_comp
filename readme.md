@@ -1,0 +1,1 @@
+This repo is based on https://pytorch-lightning.readthedocs.io/en/stable/notebooks/lightning_examples/cifar10-baseline.html
