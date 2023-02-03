@@ -4,15 +4,19 @@ import torchvision
 from torchmetrics.functional import accuracy
 from torch import nn
 import torch.nn.functional as F
+import wandb
+wandb.login()
 
 
 class CNN(pl.LightningModule):
-    def __init__(self, optim):
+    def __init__(self, optim_dict,lr,optim_name):
         super().__init__()
-        self.optim = optim
+        self.optim = optim_dict[optim_name]
+        self.lr = lr
         self.resnet18 = torchvision.models.resnet18(num_classes=10)
         self.resnet18.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.resnet18.maxpool = nn.Identity()
+        self.optim_name = optim_name 
         
     def forward(self, x):
         return F.log_softmax(self.resnet18(x), dim=1)
@@ -33,6 +37,8 @@ class CNN(pl.LightningModule):
 
         if stage:
             self.log(f"{stage}_loss", loss, prog_bar=True)
+            wandb.log({f"{stage}_loss": loss})
+            wandb.log({f"{stage}_Accuracy": acc})
             self.log(f"{stage}_acc", acc, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
@@ -42,4 +48,7 @@ class CNN(pl.LightningModule):
         self.evaluate(batch, "test")
 
     def configure_optimizers(self):
-        return self.optim(self.parameters(), lr=0.001)
+        if(self.optim_name == 'sgd'):
+            return self.optim(self.parameters(), self.lr)
+        else:
+            return self.optim(self.parameters(), self.lr)
